@@ -1,0 +1,60 @@
+version: '3.8'
+
+networks:
+  backend-net:
+    driver: bridge
+  gateway-net:
+    driver: bridge
+
+services:
+
+  restaurant-service:
+    build: ./restaurant-service
+    container_name: restaurant-service
+    networks:
+      - backend-net
+    environment:
+      - PORT=3001
+    restart: unless-stopped
+
+  menu-service:
+    build: ./menu-service
+    container_name: menu-service
+    networks:
+      - backend-net
+    environment:
+      - PORT=3002
+      - RESTAURANT_SERVICE_URL=http://restaurant-service:3001
+    depends_on:
+      - restaurant-service
+    restart: unless-stopped
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    networks:
+      - backend-net
+    environment:
+      - PORT=3003
+      - RESTAURANT_SERVICE_URL=http://restaurant-service:3001
+      - MENU_SERVICE_URL=http://menu-service:3002
+    depends_on:
+      - restaurant-service
+      - menu-service
+    restart: unless-stopped
+
+  api-gateway:
+    image: nginx:alpine
+    container_name: api-gateway
+    networks:
+      - backend-net
+      - gateway-net
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - restaurant-service
+      - menu-service
+      - order-service
+    restart: unless-stopped
