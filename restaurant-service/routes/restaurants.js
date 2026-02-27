@@ -16,7 +16,10 @@ router.get('/:id', (req, res) => {
  const restaurant = restaurants.find(r => r.id == req.params.id);
 
  if (!restaurant) {
-  return res.status(404).json({ error: `Restaurant ${req.params.id} not found` });
+  return res.status(404).json({
+  service: "restaurant-service",
+  error: `Restaurant ${req.params.id} not found`
+});
  }
 
  res.json({ service: "restaurant-service", data: restaurant });

@@ -35,8 +35,9 @@ router.post('/', async (req, res) => {
 
  if (!restaurantId || !itemId) {
   return res.status(400).json({
-   error: "restaurantId and itemId are required"
-  });
+  service: "order-service",
+  error: "restaurantId and itemId are required"
+});
  }
 
  try {
@@ -44,13 +45,19 @@ router.post('/', async (req, res) => {
   // --- Inter-service call 1 ---
   const restaurant = await verifyRestaurant(restaurantId);
   if (!restaurant) {
-   return res.status(404).json({ error: "Restaurant not found" });
+   return res.status(404).json({
+  service: "order-service",
+  error: "Restaurant not found"
+});
   }
 
   // --- Inter-service call 2 ---
   const menuItem = await verifyMenuItem(restaurantId, itemId);
   if (!menuItem) {
-   return res.status(404).json({ error: "Menu item not found" });
+   return res.status(404).json({
+  service: "order-service",
+  error: "Menu item not found"
+});
   }
 
   const totalPrice = menuItem.price * quantity;
@@ -79,14 +86,16 @@ router.post('/', async (req, res) => {
 
   if (error.code === 'ECONNREFUSED') {
    return res.status(503).json({
-    error: "Dependent service unavailable"
-   });
+  service: "order-service",
+  error: "Dependent service unavailable"
+});
   }
 
   res.status(500).json({
-   error: "Order processing failed",
-   detail: error.message
-  });
+  service: "order-service",
+  error: "Order processing failed",
+  detail: error.message
+});
  }
 });
 

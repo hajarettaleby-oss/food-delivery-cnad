@@ -41,8 +41,9 @@ router.post('/', async (req, res) => {
 
  if (!restaurantId || !name || !price) {
   return res.status(400).json({
-   error: "restaurantId, name and price are required"
-  });
+  service: "menu-service",
+  error: "restaurantId, name and price are required"
+});
  }
 
  // --- Inter-service REST call ---
@@ -50,8 +51,9 @@ router.post('/', async (req, res) => {
 
  if (!restaurant) {
   return res.status(404).json({
-   error: "Restaurant does not exist"
-  });
+  service: "menu-service",
+  error: "Restaurant does not exist"
+});
  }
 
  const newItem = {
