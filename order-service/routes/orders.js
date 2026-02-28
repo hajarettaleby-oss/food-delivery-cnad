@@ -1,12 +1,10 @@
 const express = require('express');
 const axios = require('axios');
+const db = require('../firebase');
 const router = express.Router();
 
 const RESTAURANT_SERVICE_URL = process.env.RESTAURANT_SERVICE_URL || 'http://localhost:3001';
 const MENU_SERVICE_URL = process.env.MENU_SERVICE_URL || 'http://localhost:3002';
-
-let orders = [];
-let orderIdCounter = 1;
 
 // Helper: verify restaurant
 async function verifyRestaurant(id) {
@@ -35,35 +33,32 @@ router.post('/', async (req, res) => {
 
  if (!restaurantId || !itemId) {
   return res.status(400).json({
-  service: "order-service",
-  error: "restaurantId and itemId are required"
-});
+   service: "order-service",
+   error: "restaurantId and itemId are required"
+  });
  }
 
  try {
 
-  // --- Inter-service call 1 ---
   const restaurant = await verifyRestaurant(restaurantId);
   if (!restaurant) {
    return res.status(404).json({
-  service: "order-service",
-  error: "Restaurant not found"
-});
+    service: "order-service",
+    error: "Restaurant not found"
+   });
   }
 
-  // --- Inter-service call 2 ---
   const menuItem = await verifyMenuItem(restaurantId, itemId);
   if (!menuItem) {
    return res.status(404).json({
-  service: "order-service",
-  error: "Menu item not found"
-});
+    service: "order-service",
+    error: "Menu item not found"
+   });
   }
 
   const totalPrice = menuItem.price * quantity;
 
-  const order = {
-   id: orderIdCounter++,
+  const newOrder = {
    restaurantId,
    itemId,
    itemName: menuItem.name,
@@ -73,55 +68,84 @@ router.post('/', async (req, res) => {
    status: "CONFIRMED",
    createdAt: new Date().toISOString()
   };
-
-  orders.push(order);
+  const docRef = await db.collection("orders").add(newOrder);
 
   res.status(201).json({
    service: "order-service",
    message: "Order created successfully",
-   data: order
+   data: {
+    id: docRef.id,
+    ...newOrder
+   }
   });
 
  } catch (error) {
 
   if (error.code === 'ECONNREFUSED') {
    return res.status(503).json({
-  service: "order-service",
-  error: "Dependent service unavailable"
-});
+    service: "order-service",
+    error: "Dependent service unavailable"
+   });
   }
 
   res.status(500).json({
-  service: "order-service",
-  error: "Order processing failed",
-  detail: error.message
-});
+   service: "order-service",
+   error: "Order processing failed",
+   detail: error.message
+  });
  }
 });
 
 // GET /orders
-router.get('/', (req, res) => {
- res.json({
-  service: "order-service",
-  count: orders.length,
-  data: orders
- });
+router.get('/', async (req, res) => {
+ try {
+  const snapshot = await db.collection("orders").get();
+
+  const orders = snapshot.docs.map(doc => ({
+   id: doc.id,
+   ...doc.data()
+  }));
+
+  res.json({
+   service: "order-service",
+   count: orders.length,
+   data: orders
+  });
+
+ } catch (error) {
+  res.status(500).json({
+   service: "order-service",
+   error: "Failed to fetch orders"
+  });
+ }
 });
 
 // GET /orders/:id
-router.get('/:id', (req, res) => {
- const order = orders.find(o => o.id == req.params.id);
+router.get('/:id', async (req, res) => {
+ try {
+  const doc = await db.collection("orders").doc(req.params.id).get();
 
- if (!order) {
-  return res.status(404).json({
-   error: `Order ${req.params.id} not found`
+  if (!doc.exists) {
+   return res.status(404).json({
+    service: "order-service",
+    error: `Order ${req.params.id} not found`
+   });
+  }
+
+  res.json({
+   service: "order-service",
+   data: {
+    id: doc.id,
+    ...doc.data()
+   }
+  });
+
+ } catch (error) {
+  res.status(500).json({
+   service: "order-service",
+   error: "Failed to fetch order"
   });
  }
-
- res.json({
-  service: "order-service",
-  data: order
- });
 });
 
 module.exports = router;
