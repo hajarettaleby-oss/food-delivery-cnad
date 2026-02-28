@@ -115,8 +115,31 @@ Routes:
 - /gateway/health → Gateway health endpoint
 
 ---
+## 6. Logging & Correlation ID
 
-## 6. Docker Orchestration
+Each microservice implements a request/response logging middleware.
+
+For every request, the following information is logged:
+
+- Timestamp
+- HTTP Method
+- Request Path
+- Response Status Code
+- Request Duration
+- Service Identifier
+- Correlation ID
+
+The API Gateway generates a Correlation ID using Nginx's built-in `$request_id`.
+
+The ID is forwarded to all services through the `X-Correlation-ID` header.
+
+Each service logs this Correlation ID, enabling distributed request tracing across the microservices architecture.
+
+This allows tracking a single client request across:
+
+Client → API Gateway → Order Service → Restaurant Service → Menu Service
+---
+## 7. Docker Orchestration
 
 The system is orchestrated using docker-compose.yml.
 
@@ -133,8 +156,27 @@ docker-compose up --build
 
 
 ---
+## 8. Cloud Platform Integration
 
-## 7. Cloud Platform Integration
+### Firebase Firestore (Persistent Storage)
+
+The Order Service uses Firebase Firestore as a managed NoSQL cloud database.
+
+Instead of storing orders in memory, orders are persisted in a Firestore collection.
+
+Benefits:
+
+- Persistent storage (data survives container restarts)
+- Managed NoSQL database
+- Automatic scaling
+- No manual database server management
+- Production-ready durability
+
+This replaces in-memory arrays typically used in simple Node.js services.
+
+---
+
+### Google App Engine Deployment
 
 The Order Service is deployed to Google App Engine (Standard Environment).
 
@@ -144,17 +186,16 @@ gcloud app deploy
 Live URL:
 https://cnad-food-delivery.oa.r.appspot.com
 
-
-Cloud features:
+Cloud Features:
 
 - Managed runtime
 - Automatic scaling
 - Scaling to zero
-- Managed infrastructure
+- High availability infrastructure
 
 ---
 
-## 8. Environment Variables
+## 9. Environment Variables
 
 Environment variables used:
 
@@ -168,7 +209,7 @@ Defined in:
 
 ---
 
-## 9. Health Checks
+## 10. Health Checks
 
 Each service exposes:
 GET /health
@@ -178,7 +219,7 @@ Used for monitoring and production readiness verification.
 
 ---
 
-## 10. Postman Collection
+## 11. Postman Collection
 
 The Postman collection for testing all endpoints is included in:
 
@@ -186,7 +227,7 @@ postman-collection.json
 
 ---
 
-## 11. AI Usage Declaration
+## 12. AI Usage Declaration
 
 AI assistance was used to:
 
